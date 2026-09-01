@@ -21,6 +21,35 @@ export function getDb(): Database.Database {
   return _db;
 }
 
+const ALL_TABLES = [
+  "status_history",
+  "deadlines",
+  "takehomes",
+  "interviews",
+  "applications",
+  "companies",
+] as const;
+
+/**
+ * Permanently deletes every row from every table (children first, to
+ * respect foreign keys) and resets the autoincrement counters. Irreversible.
+ */
+export function clearAllData(): void {
+  const db = getDb();
+  const clear = db.transaction(() => {
+    for (const table of ALL_TABLES) {
+      db.prepare(`DELETE FROM ${table}`).run();
+    }
+    const hasSequenceTable = db
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'sqlite_sequence'")
+      .get();
+    if (hasSequenceTable) {
+      db.prepare(`DELETE FROM sqlite_sequence WHERE name IN (${ALL_TABLES.map(() => "?").join(",")})`).run(...ALL_TABLES);
+    }
+  });
+  clear();
+}
+
 function runMigrations(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS companies (

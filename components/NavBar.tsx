@@ -1,8 +1,20 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const links = [
   { href: "/", label: "Dashboard" },
@@ -14,7 +26,24 @@ const links = [
 
 export function NavBar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const [open, setOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  async function handleClearAllData() {
+    setClearing(true);
+    try {
+      const res = await fetch("/api/data", { method: "DELETE" });
+      if (!res.ok) throw new Error(await res.text());
+      setOpen(false);
+      router.refresh();
+    } catch (e) {
+      console.error("Failed to clear data", e);
+    } finally {
+      setClearing(false);
+    }
+  }
 
   return (
     <header className="border-b bg-background sticky top-0 z-10">
@@ -45,13 +74,50 @@ export function NavBar() {
             })}
           </nav>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        >
-          {theme === "dark" ? "☀️" : "🌙"}
-        </Button>
+        <div className="flex items-center gap-1">
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-destructive"
+                />
+              }
+            >
+              <Trash2Icon />
+              <span className="sr-only">Clear all data</span>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Clear all data?</DialogTitle>
+                <DialogDescription>
+                  This permanently deletes every company, application, interview,
+                  take-home, and deadline. This cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose render={<Button variant="outline" />}>
+                  Cancel
+                </DialogClose>
+                <Button
+                  variant="destructive"
+                  onClick={handleClearAllData}
+                  disabled={clearing}
+                >
+                  {clearing ? "Clearing…" : "Clear all data"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </Button>
+        </div>
       </div>
     </header>
   );
