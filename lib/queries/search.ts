@@ -32,15 +32,17 @@ export function globalSearch(query: string): SearchResult[] {
     });
   }
 
-  // Search applications
+  // Search applications (role, description, source, or a tagged technology)
   const apps = db
     .prepare(
-      `SELECT a.id, a.role_title, a.job_description, a.source, c.name as company_name
+      `SELECT DISTINCT a.id, a.role_title, a.job_description, a.source, c.name as company_name
        FROM applications a
        JOIN companies c ON c.id = a.company_id
-       WHERE a.role_title LIKE ? OR a.job_description LIKE ? OR a.source LIKE ?`
+       LEFT JOIN application_technologies at ON at.application_id = a.id
+       LEFT JOIN technologies t ON t.id = at.technology_id
+       WHERE a.role_title LIKE ? OR a.job_description LIKE ? OR a.source LIKE ? OR t.name LIKE ?`
     )
-    .all(q, q, q) as {
+    .all(q, q, q, q) as {
     id: number;
     role_title: string;
     job_description: string | null;
@@ -48,13 +50,23 @@ export function globalSearch(query: string): SearchResult[] {
     company_name: string;
   }[];
   for (const a of apps) {
+    const techs = db
+      .prepare(
+        `SELECT t.name FROM application_technologies at
+         JOIN technologies t ON t.id = at.technology_id
+         WHERE at.application_id = ? ORDER BY t.name ASC`
+      )
+      .all(a.id) as { name: string }[];
+    const matchedByTech = techs.some((t) => t.name.toLowerCase().includes(query.toLowerCase()));
     results.push({
       type: "application",
       id: a.id,
       application_id: a.id,
       company_name: a.company_name,
       role_title: a.role_title,
-      excerpt: snippet(a.job_description ?? a.role_title, query),
+      excerpt: matchedByTech
+        ? `Tagged with: ${techs.map((t) => t.name).join(", ")}`
+        : snippet(a.job_description ?? a.role_title, query),
       url: `/applications/${a.id}`,
     });
   }

@@ -33,7 +33,8 @@ export default function CompaniesPage() {
     ? companies.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     : companies;
 
-  const handleCreate = async () => {
+  const handleCreate = async (event: React.FormEvent) => {
+    event.preventDefault();
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = "Name is required";
     if (Object.keys(e).length) { setErrors(e); return; }
@@ -107,6 +108,7 @@ export default function CompaniesPage() {
           <DialogHeader>
             <DialogTitle>New Company</DialogTitle>
           </DialogHeader>
+          <form onSubmit={handleCreate} className="contents">
           <div className="space-y-4 py-2">
             <div className="space-y-1">
               <Label>Name *</Label>
@@ -123,9 +125,10 @@ export default function CompaniesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={saving}>{saving ? "Saving…" : "Create"}</Button>
+            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Create"}</Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

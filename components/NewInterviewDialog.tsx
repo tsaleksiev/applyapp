@@ -26,7 +26,8 @@ export function NewInterviewDialog({ open, onOpenChange, applicationId, onCreate
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     const e: Record<string, string> = {};
     if (!roundName.trim()) e.roundName = "Round name is required";
     if (Object.keys(e).length) { setErrors(e); return; }
@@ -59,6 +60,7 @@ export function NewInterviewDialog({ open, onOpenChange, applicationId, onCreate
         <DialogHeader>
           <DialogTitle>Add Interview Round</DialogTitle>
         </DialogHeader>
+        <form onSubmit={handleSubmit} className="contents">
         <div className="space-y-4 py-2">
           <div className="space-y-1">
             <Label>Round Name *</Label>
@@ -100,9 +102,10 @@ export function NewInterviewDialog({ open, onOpenChange, applicationId, onCreate
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={saving}>{saving ? "Saving…" : "Add"}</Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Add"}</Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

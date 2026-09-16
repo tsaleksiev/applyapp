@@ -7,7 +7,8 @@ import type {
 } from "@/lib/types";
 
 export function getAllApplications(): ApplicationWithCompany[] {
-  return getDb()
+  const db = getDb();
+  const apps = db
     .prepare(
       `SELECT a.*, c.name as company_name, c.website as company_website, c.location as company_location
        FROM applications a
@@ -15,6 +16,26 @@ export function getAllApplications(): ApplicationWithCompany[] {
        ORDER BY a.updated_at DESC`
     )
     .all() as ApplicationWithCompany[];
+  if (apps.length === 0) return apps;
+
+  const techRows = db
+    .prepare(
+      `SELECT at.application_id, t.slug, t.name
+       FROM application_technologies at
+       JOIN technologies t ON t.id = at.technology_id
+       ORDER BY t.name ASC`
+    )
+    .all() as { application_id: number; slug: string; name: string }[];
+  const byApp = new Map<number, { slug: string; name: string }[]>();
+  for (const row of techRows) {
+    const list = byApp.get(row.application_id) ?? [];
+    list.push({ slug: row.slug, name: row.name });
+    byApp.set(row.application_id, list);
+  }
+  for (const app of apps) {
+    app.technologies = byApp.get(app.id) ?? [];
+  }
+  return apps;
 }
 
 export function getApplicationById(

@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { NewApplicationDialog } from "@/components/NewApplicationDialog";
 import type { ApplicationStatus, ApplicationWithCompany } from "@/lib/types";
@@ -37,16 +38,27 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useLocalStorage<ApplicationStatus[]>("app-status-filter", []);
+  const [techFilter, setTechFilter] = useLocalStorage<string[]>("app-tech-filter", []);
   const [sortField, setSortField] = useLocalStorage<SortField>("app-sort-field", "company_name");
   const [sortDir, setSortDir] = useLocalStorage<SortDir>("app-sort-dir", "asc");
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // pre-populate filter from URL param (from dashboard click)
+  // pre-populate filters from URL params (from dashboard click)
   useEffect(() => {
     const s = searchParams.get("status") as ApplicationStatus | null;
     if (s && APPLICATION_STATUSES.includes(s)) setStatusFilter([s]);
+    const tech = searchParams.get("tech");
+    if (tech) setTechFilter(tech.split(",").filter(Boolean));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const allTechnologies = useMemo(() => {
+    const seen = new Map<string, string>(); // slug -> name
+    for (const a of apps) {
+      for (const t of a.technologies ?? []) seen.set(t.slug, t.name);
+    }
+    return [...seen.entries()].map(([slug, name]) => ({ slug, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [apps]);
 
   const load = useCallback(() => {
     fetch("/api/applications")
@@ -70,6 +82,12 @@ export default function ApplicationsPage() {
     if (statusFilter.length) {
       list = list.filter((a) => statusFilter.includes(a.status));
     }
+    if (techFilter.length) {
+      list = list.filter((a) => {
+        const slugs = new Set((a.technologies ?? []).map((t) => t.slug));
+        return techFilter.every((s) => slugs.has(s));
+      });
+    }
     list = [...list].sort((a, b) => {
       const av = a[sortField] ?? "";
       const bv = b[sortField] ?? "";
@@ -77,7 +95,7 @@ export default function ApplicationsPage() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return list;
-  }, [apps, search, statusFilter, sortField, sortDir]);
+  }, [apps, search, statusFilter, techFilter, sortField, sortDir]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -91,6 +109,12 @@ export default function ApplicationsPage() {
   const toggleStatus = (s: ApplicationStatus) => {
     setStatusFilter(
       statusFilter.includes(s) ? statusFilter.filter((x) => x !== s) : [...statusFilter, s]
+    );
+  };
+
+  const toggleTech = (slug: string) => {
+    setTechFilter(
+      techFilter.includes(slug) ? techFilter.filter((x) => x !== slug) : [...techFilter, slug]
     );
   };
 
@@ -138,6 +162,33 @@ export default function ApplicationsPage() {
         </div>
       </div>
 
+      {allTechnologies.length > 0 && (
+        <div className="flex gap-1 flex-wrap items-center">
+          <span className="text-xs text-muted-foreground uppercase tracking-wide mr-1">Tech</span>
+          {allTechnologies.map((t) => (
+            <button
+              key={t.slug}
+              onClick={() => toggleTech(t.slug)}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                techFilter.includes(t.slug)
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:border-foreground"
+              }`}
+            >
+              {t.name}
+            </button>
+          ))}
+          {techFilter.length > 0 && (
+            <button
+              onClick={() => setTechFilter([])}
+              className="px-2.5 py-1 rounded-full text-xs border border-dashed text-muted-foreground hover:text-foreground"
+            >
+              clear
+            </button>
+          )}
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           {apps.length === 0 ? (
@@ -171,6 +222,7 @@ export default function ApplicationsPage() {
                     <SortIcon field={field} />
                   </th>
                 ))}
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Technologies</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Next Action</th>
               </tr>
             </thead>
@@ -190,6 +242,15 @@ export default function ApplicationsPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {app.applied_date ? format(parseISO(app.applied_date), "d MMM yyyy") : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1 flex-wrap max-w-[220px]">
+                      {(app.technologies ?? []).length === 0
+                        ? <span className="text-muted-foreground">—</span>
+                        : app.technologies!.map((t) => (
+                            <Badge key={t.slug} variant="outline" className="text-[0.7rem]">{t.name}</Badge>
+                          ))}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">
                     {app.status === "applied" ? "Follow up?" :

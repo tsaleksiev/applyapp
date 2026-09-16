@@ -22,7 +22,8 @@ export function NewTakeHomeDialog({ open, onOpenChange, applicationId, onCreated
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     const e: Record<string, string> = {};
     if (!title.trim()) e.title = "Title is required";
     if (Object.keys(e).length) { setErrors(e); return; }
@@ -53,6 +54,7 @@ export function NewTakeHomeDialog({ open, onOpenChange, applicationId, onCreated
         <DialogHeader>
           <DialogTitle>Add Take-home</DialogTitle>
         </DialogHeader>
+        <form onSubmit={handleSubmit} className="contents">
         <div className="space-y-4 py-2">
           <div className="space-y-1">
             <Label>Title *</Label>
@@ -75,9 +77,10 @@ export function NewTakeHomeDialog({ open, onOpenChange, applicationId, onCreated
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={saving}>{saving ? "Saving…" : "Add"}</Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Add"}</Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -52,6 +52,7 @@ export interface ApplicationWithCompany extends Application {
   company_name: string;
   company_website: string | null;
   company_location: string | null;
+  technologies?: { slug: string; name: string }[];
 }
 
 export interface Interview {
@@ -105,4 +106,21 @@ export interface StatusHistory {
   to_status: string;
   changed_at: string;
   notes: string | null;
+}
+
+export type TechCategory =
+  | "language"
+  | "cloud"
+  | "infra_devops"
+  | "data_messaging"
+  | "framework"
+  | "practice"
+  | "other";
+
+export interface Technology {
+  id: number;
+  name: string;
+  slug: string;
+  category: TechCategory;
+  created_at: string;
 }

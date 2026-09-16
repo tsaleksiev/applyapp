@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDistanceToNow, format, parseISO } from "date-fns";
 import { StatusBadge } from "@/components/StatusBadge";
-import type { ApplicationStatus, ApplicationWithCompany, Interview, Deadline } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import type { ApplicationStatus, ApplicationWithCompany, Interview, Deadline, Technology } from "@/lib/types";
 
 const STATUS_ORDER: ApplicationStatus[] = [
   "interested", "applied", "screening", "interviewing", "offer", "rejected", "withdrawn", "ghosted",
@@ -14,6 +15,7 @@ interface DashboardData {
   upcomingInterviews: Array<Interview & { company_name: string; role_title: string; application_id: number }>;
   upcomingDeadlines: Array<Deadline & { company_name?: string; role_title?: string }>;
   staleApplications: ApplicationWithCompany[];
+  topTechnologies: Array<Technology & { count: number }>;
   recentActivity: Array<{
     type: string;
     application_id: number;
@@ -123,6 +125,25 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Top technologies */}
+      {data.topTechnologies.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            Top Technologies Across Your Pipeline
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {data.topTechnologies.map((t) => (
+              <Link key={t.id} href={`/applications?tech=${t.slug}`}>
+                <Badge variant="secondary" className="text-sm py-1 px-2.5 gap-1.5">
+                  {t.name}
+                  <span className="text-muted-foreground">{t.count}</span>
+                </Badge>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Stale applications */}
       {data.staleApplications.length > 0 && (

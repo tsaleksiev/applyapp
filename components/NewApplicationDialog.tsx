@@ -46,7 +46,8 @@ export function NewApplicationDialog({ open, onOpenChange, onCreated, preselecte
     return e;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
 
@@ -93,6 +94,7 @@ export function NewApplicationDialog({ open, onOpenChange, onCreated, preselecte
         <DialogHeader>
           <DialogTitle>New Application</DialogTitle>
         </DialogHeader>
+        <form onSubmit={handleSubmit} className="contents">
         <div className="space-y-4 py-2">
           {!preselectedCompanyId && (
             <div className="space-y-2">
@@ -164,9 +166,10 @@ export function NewApplicationDialog({ open, onOpenChange, onCreated, preselecte
 
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={saving}>{saving ? "Saving…" : "Create"}</Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Create"}</Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

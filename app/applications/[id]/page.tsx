@@ -16,8 +16,9 @@ import { MarkdownView } from "@/components/MarkdownEditor";
 import { NewInterviewDialog } from "@/components/NewInterviewDialog";
 import { NewTakeHomeDialog } from "@/components/NewTakeHomeDialog";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { TechTagInput } from "@/components/TechTagInput";
 import type {
-  ApplicationWithCompany, ApplicationStatus, Interview, TakeHome, StatusHistory,
+  ApplicationWithCompany, ApplicationStatus, Interview, TakeHome, StatusHistory, Technology,
 } from "@/lib/types";
 import { APPLICATION_STATUSES } from "@/lib/types";
 
@@ -31,6 +32,8 @@ export default function ApplicationDetailPage() {
   const [app, setApp] = useState<AppData | null>(null);
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [takeHomes, setTakeHomes] = useState<TakeHome[]>([]);
+  const [technologies, setTechnologies] = useState<Technology[]>([]);
+  const [savingTech, setSavingTech] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -49,10 +52,11 @@ export default function ApplicationDetailPage() {
   const [deletingTakeHome, setDeletingTakeHome] = useState<number | null>(null);
 
   const load = useCallback(async () => {
-    const [appRes, interviewsRes, takeHomesRes] = await Promise.all([
+    const [appRes, interviewsRes, takeHomesRes, techRes] = await Promise.all([
       fetch(`/api/applications/${id}`),
       fetch(`/api/applications/${id}/interviews`),
       fetch(`/api/applications/${id}/takehomes`),
+      fetch(`/api/applications/${id}/technologies`),
     ]);
     const appData = await appRes.json();
     setApp(appData);
@@ -66,6 +70,7 @@ export default function ApplicationDetailPage() {
     });
     setInterviews(await interviewsRes.json());
     setTakeHomes(await takeHomesRes.json());
+    setTechnologies(await techRes.json());
     setLoading(false);
   }, [id]);
 
@@ -107,6 +112,20 @@ export default function ApplicationDetailPage() {
       applied_date: overviewForm.applied_date || null,
     });
     setEditingOverview(false);
+  };
+
+  const saveTechnologies = async (names: string[]) => {
+    setSavingTech(true);
+    try {
+      const res = await fetch(`/api/applications/${id}/technologies`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ technologies: names }),
+      });
+      setTechnologies(await res.json());
+    } finally {
+      setSavingTech(false);
+    }
   };
 
   const deleteApp = async () => {
@@ -164,9 +183,9 @@ export default function ApplicationDetailPage() {
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="jd">Job Description</TabsTrigger>
-          <TabsTrigger value="interviews">Interviews ({interviews.length})</TabsTrigger>
-          <TabsTrigger value="takehomes">Take-homes ({takeHomes.length})</TabsTrigger>
+          <TabsTrigger value="jd">Job Description{technologies.length > 0 && ` (${technologies.length})`}</TabsTrigger>
+          <TabsTrigger value="interviews">Interviews{interviews.length > 0 && ` (${interviews.length})`}</TabsTrigger>
+          <TabsTrigger value="takehomes">Take-homes{takeHomes.length > 0 && ` (${takeHomes.length})`}</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
@@ -237,28 +256,39 @@ export default function ApplicationDetailPage() {
         </TabsContent>
 
         {/* Job Description */}
-        <TabsContent value="jd" className="pt-4 space-y-3">
-          <div className="flex justify-end">
+        <TabsContent value="jd" className="pt-4 grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-6 items-start">
+          <div className="space-y-3 lg:order-1">
+            <div className="flex justify-end">
+              {editingJD ? (
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { setEditingJD(false); setJd(app.job_description ?? ""); }}>Cancel</Button>
+                  <Button size="sm" onClick={saveJD} disabled={saving}>Save</Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setEditingJD(true)}>Edit</Button>
+              )}
+            </div>
             {editingJD ? (
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => { setEditingJD(false); setJd(app.job_description ?? ""); }}>Cancel</Button>
-                <Button size="sm" onClick={saveJD} disabled={saving}>Save</Button>
-              </div>
+              <Textarea
+                value={jd}
+                onChange={(e) => setJd(e.target.value)}
+                rows={20}
+                className="font-mono text-sm"
+                placeholder="Paste the job description here (markdown supported)…"
+              />
             ) : (
-              <Button size="sm" variant="outline" onClick={() => setEditingJD(true)}>Edit</Button>
+              <MarkdownView content={app.job_description} />
             )}
           </div>
-          {editingJD ? (
-            <Textarea
-              value={jd}
-              onChange={(e) => setJd(e.target.value)}
-              rows={20}
-              className="font-mono text-sm"
-              placeholder="Paste the job description here (markdown supported)…"
+          <div className="space-y-2 lg:order-2">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+              Technologies{savingTech && " · saving…"}
+            </p>
+            <TechTagInput
+              value={technologies.map((t) => t.name)}
+              onChange={saveTechnologies}
             />
-          ) : (
-            <MarkdownView content={app.job_description} />
-          )}
+          </div>
         </TabsContent>
 
         {/* Interviews */}
