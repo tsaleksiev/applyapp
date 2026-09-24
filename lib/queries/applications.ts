@@ -205,7 +205,18 @@ export function getRecentActivity(limit = 10): Array<{
        FROM status_history sh
        JOIN applications a ON a.id = sh.application_id
        JOIN companies c ON c.id = a.company_id
-       ORDER BY sh.changed_at DESC
+       UNION ALL
+       SELECT
+         'interview' as type,
+         a.id as application_id,
+         c.name as company_name,
+         a.role_title,
+         ('Interview added: ' || i.round_name) as detail,
+         i.created_at as timestamp
+       FROM interviews i
+       JOIN applications a ON a.id = i.application_id
+       JOIN companies c ON c.id = a.company_id
+       ORDER BY timestamp DESC
        LIMIT ?`
     )
     .all(limit) as Array<{
