@@ -100,8 +100,10 @@ export function NewApplicationDialog({ open, onOpenChange, onCreated, preselecte
             <div className="space-y-2">
               <Label>Company</Label>
               <Select value={companyId} onValueChange={(v) => v && setCompanyId(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select existing company…" />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select existing company…">
+                    {(v: string | null) => companies.find((c) => String(c.id) === v)?.name ?? v}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {companies.map((c) => (
@@ -134,7 +136,7 @@ export function NewApplicationDialog({ open, onOpenChange, onCreated, preselecte
             <div className="space-y-1">
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => v && setStatus(v as ApplicationStatus)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {APPLICATION_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
