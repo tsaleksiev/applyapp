@@ -43,7 +43,7 @@ export default function ApplicationDetailPage() {
   const [editingJD, setEditingJD] = useState(false);
   const [jd, setJd] = useState("");
   const [editingOverview, setEditingOverview] = useState(false);
-  const [overviewForm, setOverviewForm] = useState({ source: "", salary_range: "", job_url: "", applied_date: "" });
+  const [overviewForm, setOverviewForm] = useState({ role_title: "", source: "", salary_range: "", job_url: "", applied_date: "" });
 
   const [interviewDialogOpen, setInterviewDialogOpen] = useState(false);
   const [takeHomeDialogOpen, setTakeHomeDialogOpen] = useState(false);
@@ -63,6 +63,7 @@ export default function ApplicationDetailPage() {
     setNotes(appData.notes ?? "");
     setJd(appData.job_description ?? "");
     setOverviewForm({
+      role_title: appData.role_title ?? "",
       source: appData.source ?? "",
       salary_range: appData.salary_range ?? "",
       job_url: appData.job_url ?? "",
@@ -106,6 +107,7 @@ export default function ApplicationDetailPage() {
 
   const saveOverview = async () => {
     await patch({
+      ...(overviewForm.role_title.trim() && { role_title: overviewForm.role_title.trim() }),
       source: overviewForm.source || null,
       salary_range: overviewForm.salary_range || null,
       job_url: overviewForm.job_url || null,
@@ -195,7 +197,7 @@ export default function ApplicationDetailPage() {
           <div className="flex justify-end">
             {editingOverview ? (
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => setEditingOverview(false)}>Cancel</Button>
+                <Button size="sm" variant="outline" onClick={() => { setEditingOverview(false); setOverviewForm((f) => ({ ...f, role_title: app.role_title })); }}>Cancel</Button>
                 <Button size="sm" onClick={saveOverview} disabled={saving}>Save</Button>
               </div>
             ) : (
@@ -205,6 +207,10 @@ export default function ApplicationDetailPage() {
           <div className="grid grid-cols-2 gap-6">
             {editingOverview ? (
               <>
+                <div className="space-y-1 col-span-2">
+                  <Label>Job Title</Label>
+                  <Input value={overviewForm.role_title} onChange={(e) => setOverviewForm((f) => ({ ...f, role_title: e.target.value }))} placeholder="Senior Engineer" />
+                </div>
                 <div className="space-y-1">
                   <Label>Source</Label>
                   <Input value={overviewForm.source} onChange={(e) => setOverviewForm((f) => ({ ...f, source: e.target.value }))} placeholder="LinkedIn, Referral…" />
